@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Employee Birthdays — Admin{% endblock %}
+
+{% block content %}
+<div class="p-3 p-lg-4" style="background:#0A1628;min-height:calc(100vh - 56px);">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-sm btn-outline-secondary text-white-50"><i class="bi bi-arrow-left"></i></a>
+    <div style="background:linear-gradient(135deg,#065F46,#10B981);border-radius:12px;padding:10px 14px;">
+      <i class="bi bi-cake2 text-white fs-5"></i>
+    </div>
+    <div>
+      <h4 class="text-white fw-bold mb-0">Employee Birthdays</h4>
+      <p class="text-white-50 small mb-0">Employee list and birthday notifications</p>
+    </div>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2 mb-3">{{ message }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+  <div class="row g-4">
+
+    <!-- ADD FORM -->
+    <div class="col-lg-4">
+      <div class="wh-card" style="border-color:rgba(16,185,129,.2);">
+        <h6 class="fw-semibold mb-3" style="color:#10B981;"><i class="bi bi-person-plus me-2"></i>Add employee</h6>
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="add" />
+          <div class="mb-3">
+            <label class="form-label text-white-50 small">Full name *</label>
+            <input type="text" name="name" class="form-control wh-input" placeholder="Jan Kowalski" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-white-50 small">Date of birth * <span class="text-white-25">(year is ignored)</span></label>
+            <input type="date" name="birthday" class="form-control wh-input" required />
+          </div>
+          <button type="submit" class="btn w-100 fw-semibold" style="background:linear-gradient(135deg,#065F46,#10B981);border:none;color:#fff;">
+            <i class="bi bi-plus-lg me-2"></i>Add employee
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- LIST -->
+    <div class="col-lg-8">
+      <div class="wh-card p-0 overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-dark align-middle mb-0" style="--bs-table-bg:transparent;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(16,185,129,.2);">
+                <th class="text-white-50 small fw-semibold px-3 py-3">Employee</th>
+                <th class="text-white-50 small fw-semibold">Birthdays</th>
+                <th class="text-white-50 small fw-semibold">Days left</th>
+                <th class="text-white-50 small fw-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for emp in employees %}
+              {% set days = emp.days_until_birthday() %}
+              <tr>
+                <td class="px-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-circle" style="background:linear-gradient(135deg,#065F46,#10B981);font-size:.8rem;">{{ emp.name[0]|upper }}</div>
+                    <span class="text-white small">{{ emp.name }}</span>
+                  </div>
+                </td>
+                <td class="text-white-50 small">{{ emp.birthday.strftime('%d %B') }}</td>
+                <td>
+                  {% if days == 0 %}
+                  <span class="badge bg-success bg-opacity-25 text-success">Today! 🎂</span>
+                  {% elif days <= 7 %}
+                  <span class="badge bg-warning bg-opacity-25 text-warning">in {{ days }} days</span>
+                  {% else %}
+                  <span class="badge bg-secondary bg-opacity-25 text-white-50">in {{ days }} days</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-white-50"
+                            data-bs-toggle="modal" data-bs-target="#editEmpModal{{ emp.id }}">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <form method="POST" onsubmit="return confirm('Delete this employee?')" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="action" value="delete" />
+                      <input type="hidden" name="employee_id" value="{{ emp.id }}" />
+                      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash3"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Edit modal -->
+              <div class="modal fade" id="editEmpModal{{ emp.id }}" tabindex="-1">
+                <div class="modal-dialog">
+                  <div class="modal-content" style="background:#0D1E33;border-color:rgba(16,185,129,.2);">
+                    <div class="modal-header" style="border-color:rgba(255,255,255,.08);">
+                      <h6 class="modal-title text-white">Edit: {{ emp.name }}</h6>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="action" value="edit" />
+                      <input type="hidden" name="employee_id" value="{{ emp.id }}" />
+                      <div class="modal-body">
+                        <div class="mb-3">
+                          <label class="form-label text-white-50 small">Full name</label>
+                          <input type="text" name="name" class="form-control wh-input" value="{{ emp.name }}" required />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label text-white-50 small">Date of birth</label>
+                          <input type="date" name="birthday" class="form-control wh-input"
+                                 value="{{ emp.birthday.strftime('%Y-%m-%d') }}" required />
+                        </div>
+                      </div>
+                      <div class="modal-footer" style="border-color:rgba(255,255,255,.08);">
+                        <button type="button" class="btn btn-outline-secondary text-white-50" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

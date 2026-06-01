@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Trainings (edit) — Admin{% endblock %}
+
+{% block head %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+<style>
+  .ql-toolbar { background:#0D1E33; border-color:rgba(255,255,255,.12) !important; border-radius:10px 10px 0 0; }
+  .ql-container { background:#0D1E33; border-color:rgba(255,255,255,.12) !important; border-radius:0 0 10px 10px; }
+  .ql-editor { color:#e2e8f0; font-size:.9rem; min-height:200px; }
+  .ql-editor.ql-blank::before { color:rgba(255,255,255,.3); }
+  .ql-toolbar .ql-stroke { stroke:#9CA3AF; }
+  .ql-toolbar .ql-fill { fill:#9CA3AF; }
+  .ql-toolbar .ql-picker { color:#9CA3AF; }
+  .ql-toolbar button:hover .ql-stroke, .ql-toolbar button.ql-active .ql-stroke { stroke:#60A5FA; }
+  .ql-toolbar button:hover .ql-fill, .ql-toolbar button.ql-active .ql-fill { fill:#60A5FA; }
+  .ql-toolbar .ql-picker-options { background:#0D1E33; border-color:rgba(255,255,255,.12); }
+  .ql-toolbar .ql-picker-item { color:#9CA3AF; }
+  .lesson-item { transition: outline .15s; }
+  .lesson-item.editing { outline: 2px solid #06B6D4; border-radius: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-3 p-lg-4" style="background:#0A1628;min-height:calc(100vh - 56px);">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-sm btn-outline-secondary text-white-50"><i class="bi bi-arrow-left"></i></a>
+    <div style="background:linear-gradient(135deg,#0E7490,#06B6D4);border-radius:12px;padding:10px 14px;">
+      <i class="bi bi-mortarboard text-white fs-5"></i>
+    </div>
+    <div>
+      <h4 class="text-white fw-bold mb-0">Trainings</h4>
+      <p class="text-white-50 small mb-0">Create and edit training guides</p>
+    </div>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2 mb-3">{{ message }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+  <!-- Lesson data for JS -->
+  <script>
+  window.__lessons = {
+    {% for lesson in lessons %}
+    {{ lesson.id }}: {
+      title: {{ lesson.title | tojson }},
+      description: {{ lesson.description | tojson }},
+      content: {{ (lesson.content or '') | tojson }},
+      category: {{ lesson.category | tojson }},
+      order: {{ lesson.order }},
+      is_featured: {{ 'true' if lesson.is_featured else 'false' }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  };
+  </script>
+
+  <div class="row g-4">
+
+    <!-- EDITOR FORM -->
+    <div class="col-lg-9">
+      <div class="wh-card" id="editor-card" style="border-color:rgba(6,182,212,.2);">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h6 class="fw-semibold mb-0" style="color:#06B6D4;">
+            <i class="bi bi-plus-circle me-2" id="form-icon"></i>
+            <span id="form-mode-title">Add training</span>
+          </h6>
+          <button type="button" id="cancel-edit-btn" class="btn btn-sm btn-outline-secondary text-white-50"
+                  style="display:none;" onclick="cancelEdit()">
+            <i class="bi bi-x-lg me-1"></i>Cancel edit
+          </button>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" id="lesson-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" id="form-action" value="add" />
+          <input type="hidden" name="lesson_id" id="form-lesson-id" value="" />
+
+          <div class="row g-2 mb-2">
+            <div class="col-12">
+              <label class="form-label text-white-50 small">Title *</label>
+              <input type="text" name="title" id="f-title" class="form-control wh-input" placeholder="Training title" required />
+            </div>
+            <div class="col-12">
+              <label class="form-label text-white-50 small">Description *</label>
+              <textarea name="description" id="f-description" class="form-control wh-input" rows="2" placeholder="Short description" required></textarea>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label text-white-50 small">Category</label>
+              <select name="category" id="f-category" class="form-select wh-input">
+                {% for cat in categories %}
+                <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label text-white-50 small">Order</label>
+              <input type="number" name="order" id="f-order" class="form-control wh-input" value="0" min="0" />
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label text-white-50 small d-block">Featured</label>
+              <div class="form-check form-switch mt-1">
+                <input type="checkbox" class="form-check-input" role="switch" name="is_featured" id="f-featured" style="width:2.5em;height:1.3em;cursor:pointer;" />
+                <label class="form-check-label text-white-50 small" for="f-featured">
+                  <i class="bi bi-star-fill me-1" style="color:#F59E0B;"></i>on dashboard
+                </label>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label text-white-50 small">Header image</label>
+              <input type="file" name="image" id="f-image" class="form-control wh-input" accept="image/*" />
+            </div>
+            <div class="col-12 mt-1 mb-3">
+              <label class="form-label text-white-50 small">Training content</label>
+              <div id="content-editor"></div>
+              <input type="hidden" name="content" id="content-hidden" />
+            </div>
+          </div>
+
+          <div style="position:sticky;bottom:0;padding:0.75rem 0 0;background:#0D1E33;border-top:1px solid rgba(255,255,255,.08);margin-top:0.25rem;">
+            <button type="submit" id="form-submit-btn"
+                    class="btn w-100 fw-semibold"
+                    style="background:linear-gradient(135deg,#0E7490,#06B6D4);border:none;color:#fff;">
+              <i class="bi bi-plus-lg me-2" id="submit-icon"></i>
+              <span id="submit-label">Add training</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- LIST -->
+    <div class="col-lg-3">
+      <div class="d-flex flex-column gap-3">
+        {% for lesson in lessons %}
+        <div class="wh-card lesson-item" id="lesson-item-{{ lesson.id }}" style="border-color:rgba(6,182,212,.1);">
+          <div class="d-flex gap-3">
+            {% if lesson.image_url %}
+            <img src="{{ lesson.image_url }}" alt="" style="width:80px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0;" />
+            {% else %}
+            <div style="width:80px;height:60px;background:rgba(6,182,212,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-journal-bookmark" style="color:#06B6D4;font-size:1.4rem;"></i>
+            </div>
+            {% endif %}
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="fw-semibold text-white">{{ lesson.title }}</span>
+                <span class="badge" style="background:rgba(6,182,212,.2);color:#06B6D4;font-size:.65rem;">{{ lesson.category }}</span>
+                {% if lesson.is_featured %}
+                <span class="badge" style="background:rgba(245,158,11,.2);color:#F59E0B;font-size:.65rem;"><i class="bi bi-star-fill me-1"></i>Featured</span>
+                {% endif %}
+              </div>
+              <div class="text-white-50 small mt-1 line-clamp-1">{{ lesson.description }}</div>
+              <div class="text-white-25 small mt-1">order: {{ lesson.order }}</div>
+            </div>
+            <div class="d-flex flex-column gap-1 flex-shrink-0">
+              <button type="button" class="btn btn-sm btn-outline-secondary text-white-50"
+                      onclick="loadEdit({{ lesson.id }})" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" onsubmit="return confirm('Delete this training?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="lesson_id" value="{{ lesson.id }}" />
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash3"></i></button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-white-50">
+          <i class="bi bi-mortarboard display-4 d-block mb-2 opacity-25"></i>
+          No trainings yet.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+(function() {
+  var TOOLBAR = [
+    [{ header: [1,2,3,false] }],
+    ['bold','italic','underline','strike'],
+    [{ color:[] },{ background:[] }],
+    [{ list:'ordered' },{ list:'bullet' }],
+    ['blockquote','code-block'],
+    ['link','image'],
+    ['clean']
+  ];
+
+  var quill = new Quill('#content-editor', {
+    theme: 'snow',
+    placeholder: 'Full training content...',
+    modules: { toolbar: TOOLBAR }
+  });
+
+  document.getElementById('lesson-form').addEventListener('submit', function() {
+    document.getElementById('content-hidden').value = quill.root.innerHTML;
+  });
+
+  var currentEditId = null;
+
+  window.loadEdit = function(lessonId) {
+    var data = window.__lessons[lessonId];
+    if (!data) return;
+
+    document.getElementById('form-action').value = 'edit';
+    document.getElementById('form-lesson-id').value = lessonId;
+    document.getElementById('f-title').value = data.title;
+    document.getElementById('f-description').value = data.description;
+    document.getElementById('f-order').value = data.order;
+    document.getElementById('f-featured').checked = data.is_featured;
+    setSelectValue('f-category', data.category);
+    quill.root.innerHTML = data.content || '';
+
+    document.getElementById('form-mode-title').textContent = 'Edit: ' + data.title;
+    document.getElementById('form-icon').className = 'bi bi-pencil me-2';
+    document.getElementById('submit-icon').className = 'bi bi-floppy me-2';
+    document.getElementById('submit-label').textContent = 'Save changes';
+    document.getElementById('cancel-edit-btn').style.display = '';
+
+    if (currentEditId) {
+      var prev = document.getElementById('lesson-item-' + currentEditId);
+      if (prev) prev.classList.remove('editing');
+    }
+    currentEditId = lessonId;
+    var el = document.getElementById('lesson-item-' + lessonId);
+    if (el) el.classList.add('editing');
+
+    document.getElementById('editor-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  window.cancelEdit = function() {
+    document.getElementById('form-action').value = 'add';
+    document.getElementById('form-lesson-id').value = '';
+    document.getElementById('lesson-form').reset();
+    quill.root.innerHTML = '';
+    document.getElementById('form-mode-title').textContent = 'Add training';
+    document.getElementById('form-icon').className = 'bi bi-plus-circle me-2';
+    document.getElementById('submit-icon').className = 'bi bi-plus-lg me-2';
+    document.getElementById('submit-label').textContent = 'Add training';
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+
+    if (currentEditId) {
+      var el = document.getElementById('lesson-item-' + currentEditId);
+      if (el) el.classList.remove('editing');
+      currentEditId = null;
+    }
+  };
+
+  function setSelectValue(id, value) {
+    var sel = document.getElementById(id);
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === value) { sel.selectedIndex = i; break; }
+    }
+  }
+})();
+</script>
+{% endblock %}

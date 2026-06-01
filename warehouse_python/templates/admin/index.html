@@ -1,0 +1,45 @@
+﻿{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+
+{% block content %}
+<div class="p-3 p-lg-4" style="background:#0A1628;min-height:calc(100vh - 56px);">
+  <div class="mb-4 d-flex align-items-center gap-3">
+    <div style="background:linear-gradient(135deg,#2563EB,#7C3AED);border-radius:14px;padding:14px 18px;">
+      <i class="bi bi-shield-lock text-white fs-4"></i>
+    </div>
+    <div>
+      <h4 class="text-white fw-bold mb-0">Administration Panel</h4>
+      <p class="text-white-50 small mb-0">Manage all aspects of the system</p>
+    </div>
+  </div>
+
+  <p class="text-white-25 fw-semibold small mb-3" style="letter-spacing:1.5px;">MANAGEMENT MODULES</p>
+
+  <div class="row g-3">
+    {% set modules = [
+      ('admin.admin_stats',      'Weekly Statistics',      'Edit truck and error data',              'bi-bar-chart-line',        '#3B82F6', 'rgba(29,78,216,.2)'),
+      ('admin.admin_news',       'News',             'Publish and manage company articles',         'bi-newspaper',             '#8B5CF6', 'rgba(109,40,217,.2)'),
+      ('admin.admin_tips',       'Info',              'Operational tips for employees',              'bi-lightbulb',             '#F59E0B', 'rgba(180,83,9,.2)'),
+      ('admin.admin_lessons',    'Trainings (edit)',      'Create and edit training guides',            'bi-mortarboard',           '#06B6D4', 'rgba(14,116,144,.2)'),
+      ('admin.admin_background', 'Backgrounds',                    'Set backgrounds for home and login pages',          'bi-image',                 '#EC4899', 'rgba(157,23,77,.2)'),
+      ('admin.admin_warnings',   'Warnings',             'Manage active employee warnings', 'bi-exclamation-triangle',  '#F97316', 'rgba(194,65,12,.2)'),
+      ('admin.admin_users',      'Users',             'User accounts, roles and permissions',            'bi-people',                '#6366F1', 'rgba(67,56,202,.2)'),
+      ('admin.admin_birthdays',  'Employee Birthdays',   'Employee list and birthday notifications',      'bi-cake2',                 '#10B981', 'rgba(6,95,70,.2)'),
+    ] %}
+
+    {% for endpoint, title, desc, icon, color, bg_color in modules %}
+    <div class="col-sm-6 col-lg-3">
+      <a href="{{ url_for(endpoint) }}" class="admin-module-card d-block text-decoration-none h-100" style="--mod-color:{{ color }};--mod-bg:{{ bg_color }};">
+        <div class="p-4">
+          <div class="mb-3" style="background:{{ bg_color }};border-radius:11px;display:inline-block;padding:10px 13px;">
+            <i class="bi {{ icon }}" style="color:{{ color }};font-size:1.25rem;"></i>
+          </div>
+          <div class="fw-semibold text-white mb-1">{{ title }}</div>
+          <div class="text-white-50 small">{{ desc }}</div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

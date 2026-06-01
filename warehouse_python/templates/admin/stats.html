@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Weekly Statistics — Admin{% endblock %}
+
+{% block content %}
+<div class="p-3 p-lg-4" style="background:#0A1628;min-height:calc(100vh - 56px);">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-sm btn-outline-secondary text-white-50">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);border-radius:12px;padding:10px 14px;">
+      <i class="bi bi-bar-chart-line text-white fs-5"></i>
+    </div>
+    <div>
+      <h4 class="text-white fw-bold mb-0">Weekly Statistics</h4>
+      <p class="text-white-50 small mb-0">Edit data for each week of the year</p>
+    </div>
+  </div>
+
+  {% if message %}
+  <div class="alert alert-success py-2 mb-3">{{ message }}</div>
+  {% endif %}
+
+  <!-- Year selector -->
+  <div class="d-flex align-items-center gap-2 mb-4">
+    <label class="text-white-50 small">Year:</label>
+    <div class="d-flex gap-1">
+      {% for y in range(2023, 2028) %}
+      <a href="{{ url_for('admin.admin_stats', year=y) }}"
+         class="btn btn-sm {% if y == year %}btn-primary{% else %}btn-outline-secondary text-white-50{% endif %}"
+         style="border-radius:8px;">{{ y }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="year" value="{{ year }}" />
+
+    <!-- Quick week navigator -->
+    <div class="mb-3">
+      <label class="text-white-50 small d-block mb-2">Jump to week:</label>
+      <div class="d-flex flex-wrap gap-1">
+        {% for w in range52 %}
+        <button type="button" class="btn btn-sm week-pill" data-week="{{ w }}"
+                style="width:36px;padding:2px 0;font-size:.7rem;border-radius:6px;background:rgba(255,255,255,.06);color:#9CA3AF;border:1px solid rgba(255,255,255,.08);"
+                onclick="scrollToWeek({{ w }})">{{ w }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="wh-card">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle mb-0" style="--bs-table-bg:transparent;--bs-table-hover-bg:rgba(255,255,255,.04);">
+          <thead>
+            <tr style="border-bottom:2px solid rgba(59,130,246,.3);">
+              <th class="text-white-50 small fw-semibold">Week</th>
+              <th class="text-primary small fw-semibold">Loaded <i class="bi bi-truck"></i></th>
+              <th class="small fw-semibold" style="color:#10B981;">Unloaded <i class="bi bi-box-arrow-in-down"></i></th>
+              <th class="small fw-semibold" style="color:#F97316;">Errors <i class="bi bi-exclamation-octagon"></i></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in range52 %}
+            {% set row = stats_map.get(w) %}
+            <tr id="week-row-{{ w }}" {% if row and (row.loaded_trucks or row.unloaded_trucks or row.errors) %}style="background:rgba(59,130,246,.04);"{% endif %}>
+              <td>
+                <span class="badge {% if row and (row.loaded_trucks or row.unloaded_trucks or row.errors) %}bg-primary{% else %}bg-secondary bg-opacity-25 text-white-50{% endif %}"
+                      style="min-width:36px;">T{{ w }}</span>
+              </td>
+              <td>
+                <input type="number" name="loaded_{{ w }}" min="0"
+                       value="{{ row.loaded_trucks if row else 0 }}"
+                       class="form-control wh-input-sm" style="width:90px;" />
+              </td>
+              <td>
+                <input type="number" name="unloaded_{{ w }}" min="0"
+                       value="{{ row.unloaded_trucks if row else 0 }}"
+                       class="form-control wh-input-sm" style="width:90px;" />
+              </td>
+              <td>
+                <input type="number" name="errors_{{ w }}" min="0"
+                       value="{{ row.errors if row else 0 }}"
+                       class="form-control wh-input-sm" style="width:90px;" />
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <button type="submit" class="btn btn-primary fw-semibold px-4">
+        <i class="bi bi-floppy me-2"></i>Save all data
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function scrollToWeek(w) {
+  const el = document.getElementById('week-row-' + w);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+{% endblock %}

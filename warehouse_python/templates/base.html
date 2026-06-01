@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Warehouse Dashboard{% endblock %}</title>
+
+  <!-- Bootstrap 5 dark -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Custom styles -->
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TOP NAVBAR
+══════════════════════════════════════════════════════════════════ -->
+<nav class="navbar navbar-dark wh-navbar px-3 px-md-4">
+  <div class="d-flex align-items-center gap-3">
+    <button class="btn btn-link text-white p-0" id="sidebarToggle" title="Menu">
+      <i class="bi bi-list fs-4"></i>
+    </button>
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('main.dashboard') }}">
+      <span class="brand-icon"><i class="bi bi-truck"></i></span>
+      <span class="d-none d-md-block">Warehouse Dashboard</span>
+    </a>
+  </div>
+
+  <!-- ── TODAY'S TRUCK STATS (center) ─────────────────── -->
+  <div class="d-none d-lg-flex align-items-center gap-0 nav-truck-stats mx-auto">
+    <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;margin-right:.9rem;padding-right:.9rem;border-right:1px solid rgba(255,255,255,.1);line-height:1.2;">
+      <span style="font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);">Today's</span>
+      <span style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.03em;">Overview</span>
+    </div>
+    <div class="nav-stat-chip nav-stat-blue">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="14" viewBox="0 0 22 14" fill="none">
+        <rect x="0" y="2" width="14" height="10" rx="2" fill="#3B82F6"/>
+        <rect x="14" y="4" width="6" height="7" rx="1" fill="#3B82F6"/>
+        <circle cx="4"  cy="12" r="2" fill="#1D4ED8"/>
+        <circle cx="16" cy="12" r="2" fill="#1D4ED8"/>
+      </svg>
+      <div>
+        <span class="nav-stat-value" id="stat-loaded">--</span>
+        <span class="nav-stat-label">Loaded</span>
+      </div>
+    </div>
+    <div class="nav-stat-div"></div>
+    <div class="nav-stat-chip nav-stat-green">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="14" viewBox="0 0 22 14" fill="none">
+        <rect x="2" y="2" width="14" height="10" rx="2" fill="#10B981"/>
+        <rect x="16" y="4" width="4" height="5" rx="1" fill="#10B981"/>
+        <circle cx="6"  cy="12" r="2" fill="#059669"/>
+        <circle cx="17" cy="12" r="2" fill="#059669"/>
+        <path d="M4 6h5M4 8.5h3" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <span class="nav-stat-value" id="stat-unloaded">--</span>
+        <span class="nav-stat-label">Unloaded</span>
+      </div>
+    </div>
+  </div><!-- /truck stats -->
+
+  <!-- ── RIGHT SIDE: weather / date / clock / user ─────── -->
+  <div class="d-flex align-items-center gap-3">
+    <!-- Weather -->
+    <div class="d-none d-xl-flex align-items-center gap-2" id="weather-widget" style="color:rgba(255,255,255,.7);font-size:.85rem;">
+      <i class="bi bi-cloud" id="weather-icon" style="font-size:1.1rem;"></i>
+      <span id="weather-temp">--°C</span>
+      <span style="color:rgba(255,255,255,.4);font-size:.78rem;">Helmond, NL</span>
+    </div>
+    <div class="vr d-none d-xl-block" style="height:20px;opacity:.2;"></div>
+    <!-- Date -->
+    <div class="d-none d-lg-flex flex-column align-items-end" style="line-height:1.15;">
+      <span class="fw-semibold text-white" style="font-size:.82rem;" id="nav-weekday"></span>
+      <span style="color:rgba(255,255,255,.45);font-size:.75rem;" id="nav-date-full"></span>
+    </div>
+    <div class="vr d-none d-lg-block" style="height:20px;opacity:.2;"></div>
+    <!-- Big clock -->
+    <span class="fw-bold text-white" style="font-size:1.6rem;letter-spacing:1px;font-variant-numeric:tabular-nums;" id="live-time">--:--</span>
+    <div class="vr" style="height:20px;opacity:.2;"></div>
+    <div class="dropdown">
+      <button class="btn btn-link text-white p-0 d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+        <span class="avatar-circle">{{ current_user.username[0]|upper }}</span>
+        <span class="d-none d-md-block">{{ current_user.username }}</span>
+        <i class="bi bi-chevron-down small"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end wh-dropdown">
+        <li><span class="dropdown-item-text small text-muted">{{ current_user.email }}</span></li>
+        <li><hr class="dropdown-divider" /></li>
+        {% if current_user.is_admin %}
+        <li><a class="dropdown-item" href="{{ url_for('admin.admin_panel') }}"><i class="bi bi-gear me-2"></i>Admin panel</a></li>
+        {% endif %}
+        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SIDEBAR + CONTENT WRAPPER
+══════════════════════════════════════════════════════════════════ -->
+<div id="main-wrapper">
+  <!-- Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="wh-sidebar" id="sidebar">
+    <nav class="d-flex flex-column gap-1 p-3">
+      <a href="{{ url_for('main.dashboard') }}" class="nav-link sidebar-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('main.lessons_page') }}" class="nav-link sidebar-link {% if 'lesson' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-journal-bookmark"></i><span>Trainings</span>
+      </a>
+      {% if current_user.is_admin %}
+      <hr class="sidebar-divider" />
+      <p class="sidebar-label">ADMINISTRATION</p>
+      <a href="{{ url_for('admin.admin_panel') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_panel' %}active{% endif %}">
+        <i class="bi bi-shield-lock"></i><span>Admin panel</span>
+      </a>
+      <a href="{{ url_for('admin.admin_stats') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_stats' %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i><span>Statistics</span>
+      </a>
+      <a href="{{ url_for('admin.admin_news') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_news' %}active{% endif %}">
+        <i class="bi bi-newspaper"></i><span>News</span>
+      </a>
+      <a href="{{ url_for('admin.admin_tips') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_tips' %}active{% endif %}">
+        <i class="bi bi-lightbulb"></i><span>Info</span>
+      </a>
+      <a href="{{ url_for('admin.admin_lessons') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_lessons' %}active{% endif %}">
+        <i class="bi bi-mortarboard"></i><span>Trainings (edit)</span>
+      </a>
+      <a href="{{ url_for('admin.admin_warnings') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_warnings' %}active{% endif %}">
+        <i class="bi bi-exclamation-triangle"></i><span>Warnings</span>
+      </a>
+      <a href="{{ url_for('admin.admin_users') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_users' %}active{% endif %}">
+        <i class="bi bi-people"></i><span>Users</span>
+      </a>
+      <a href="{{ url_for('admin.admin_birthdays') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_birthdays' %}active{% endif %}">
+        <i class="bi bi-cake2"></i><span>Birthdays</span>
+      </a>
+      <a href="{{ url_for('admin.admin_background') }}" class="nav-link sidebar-link {% if request.endpoint == 'admin.admin_background' %}active{% endif %}">
+        <i class="bi bi-image"></i><span>Backgrounds</span>
+      </a>
+      {% endif %}
+    </nav>
+  </aside>
+
+  <!-- PAGE CONTENT -->
+  <main class="wh-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="p-3 pb-0">
+          {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'success' if cat == 'success' else 'warning' if cat == 'warning' else 'danger' }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+<script>
+  // Sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  }
+
+  document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close sidebar on nav link click
+  sidebar.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', closeSidebar);
+  });
+
+  // Escape key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+
+  // Live clock + date in navbar
+  function updateClock() {
+    const now = new Date();
+    const timeEl = document.getElementById('live-time');
+    const wdEl   = document.getElementById('nav-weekday');
+    const dtEl   = document.getElementById('nav-date-full');
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
+    if (wdEl)   wdEl.textContent  = now.toLocaleDateString('en-US', {weekday:'long'}).toUpperCase();
+    if (dtEl)   dtEl.textContent  = now.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Weather widget (wttr.in free API)
+  (function fetchWeather() {
+    Promise.resolve()
+      .then(() => {
+        const city = 'Helmond';
+        return fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1');
+      })
+      .then(r => r.json())
+      .then(data => {
+        const c = data.current_condition[0];
+        const code = parseInt(c.weatherCode);
+        document.getElementById('weather-temp').textContent = c.temp_C + '°C';
+        let icon = 'bi-cloud';
+        if (code === 113) icon = 'bi-sun';
+        else if ([116,119].includes(code)) icon = 'bi-cloud-sun';
+        else if ([176,185,263,266,281,293,296,299,302,305,308,311,314,317,320,353].includes(code)) icon = 'bi-cloud-drizzle';
+        else if ([356,359,362,365,368,371,374,377].includes(code)) icon = 'bi-cloud-rain-heavy';
+        else if ([179,182,323,326,329,332,335,338,350].includes(code)) icon = 'bi-cloud-snow';
+        else if ([200,386,389,392,395].includes(code)) icon = 'bi-cloud-lightning';
+        else if ([143,248,260].includes(code)) icon = 'bi-cloud-fog';
+        document.getElementById('weather-icon').className = 'bi ' + icon + ' fs-5';
+        document.getElementById('weather-widget').style.display = 'flex';
+      })
+      .catch(() => {});
+  })();
+
+  // ── Truck stats from external API (proxy) ───────────────────────────
+  function fetchTruckStats() {
+    fetch('/api/truck-stats')
+      .then(r => r.json())
+      .then(d => {
+        const fmt = v => (v === null || v === undefined) ? '--' : v;
+        const el  = id => document.getElementById(id);
+        if (el('stat-loaded'))   el('stat-loaded').textContent   = fmt(d.loaded);
+        if (el('stat-unloaded')) el('stat-unloaded').textContent = fmt(d.unloaded);
+      })
+      .catch(() => {});
+  }
+  fetchTruckStats();
+  setInterval(fetchTruckStats, 300000); // refresh every 5 minutes
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Info / Tips — Admin{% endblock %}
+
+{% block content %}
+<div class="p-3 p-lg-4" style="background:#0A1628;min-height:calc(100vh - 56px);">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-sm btn-outline-secondary text-white-50"><i class="bi bi-arrow-left"></i></a>
+    <div style="background:linear-gradient(135deg,#B45309,#F59E0B);border-radius:12px;padding:10px 14px;">
+      <i class="bi bi-lightbulb text-white fs-5"></i>
+    </div>
+    <div>
+      <h4 class="text-white fw-bold mb-0">Info</h4>
+      <p class="text-white-50 small mb-0">Operational tips for employees</p>
+    </div>
+  </div>
+
+  {% if message %}<div class="alert alert-success py-2 mb-3">{{ message }}</div>{% endif %}
+  {% if error %}<div class="alert alert-danger py-2 mb-3">{{ error }}</div>{% endif %}
+
+  <div class="row g-4">
+
+    <!-- ADD FORM -->
+    <div class="col-lg-5">
+      <div class="wh-card" style="border-color:rgba(245,158,11,.2);">
+        <h6 class="text-white fw-semibold mb-3" style="color:#F59E0B;"><i class="bi bi-plus-circle me-2"></i>Add tip</h6>
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="add" />
+          <div class="mb-3">
+            <label class="form-label text-white-50 small">Content *</label>
+            <textarea name="text" class="form-control wh-input" rows="4" placeholder="Tip content..." required></textarea>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="is_important" id="isImportant" />
+            <label class="form-check-label text-white-50 small" for="isImportant">
+              <i class="bi bi-star-fill me-1" style="color:#F59E0B;"></i>Important tip
+            </label>
+          </div>
+          <button type="submit" class="btn btn-warning w-100 fw-semibold text-dark">
+            <i class="bi bi-plus-lg me-2"></i>Add
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- LIST -->
+    <div class="col-lg-7">
+      <div class="d-flex flex-column gap-2">
+        {% for tip in tips %}
+        <div class="wh-card {% if tip.is_important %}border-warning border-opacity-25{% endif %}">
+          <div class="d-flex align-items-start gap-3">
+            <div class="flex-grow-1">
+              {% if tip.is_important %}
+              <span class="badge mb-1" style="background:rgba(245,158,11,.2);color:#F59E0B;font-size:.65rem;"><i class="bi bi-star-fill me-1"></i>Important</span>
+              {% endif %}
+              <div class="text-white small" id="tip-text-{{ tip.id }}">{{ tip.text }}</div>
+              <div class="text-white-25 small mt-1">{{ tip.date.strftime('%d.%m.%Y') }}</div>
+            </div>
+            <div class="d-flex gap-1 flex-shrink-0">
+              <!-- Edit toggle -->
+              <button type="button" class="btn btn-sm btn-outline-secondary text-white-50"
+                      onclick="toggleEdit({{ tip.id }})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <!-- Delete -->
+              <form method="POST" onsubmit="return confirm('Delete this tip?')" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="tip_id" value="{{ tip.id }}" />
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Inline edit form (hidden by default) -->
+          <div id="edit-form-{{ tip.id }}" class="mt-3" style="display:none;">
+            <form method="POST">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="edit" />
+              <input type="hidden" name="tip_id" value="{{ tip.id }}" />
+              <textarea name="text" class="form-control wh-input mb-2" rows="3">{{ tip.text }}</textarea>
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" name="is_important" id="imp-{{ tip.id }}"
+                       {% if tip.is_important %}checked{% endif %} />
+                <label class="form-check-label text-white-50 small" for="imp-{{ tip.id }}">Important</label>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary text-white-50"
+                        onclick="toggleEdit({{ tip.id }})">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-white-50">
+          <i class="bi bi-lightbulb display-4 d-block mb-2 opacity-25"></i>
+          No tips yet.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleEdit(id) {
+  const el = document.getElementById('edit-form-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}
